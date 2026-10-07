@@ -8,8 +8,6 @@ import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
-import java.lang.reflect.Method;
-
 public class MainHook implements IXposedHookLoadPackage {
 
     private static final String TAG = "XunyouLsposed";
@@ -23,32 +21,14 @@ public class MainHook implements IXposedHookLoadPackage {
             return;
         }
 
-        XposedBridge.log(TAG + ": ===== APP LOADED =====");
+        XposedBridge.log(TAG + ": APP LOADED");
 
+        // 保留已经验证成功的 Application.onCreate Hook
         try {
-            Class<?> appClass = XposedHelpers.findClass(
-                    "com.xunyou.rb.MyApplication",
-                    lpparam.classLoader
-            );
-
-            XposedBridge.log(TAG + ": MyApplication found");
-
             XposedHelpers.findAndHookMethod(
                     Application.class,
                     "onCreate",
                     new XC_MethodHook() {
-
-                        @Override
-                        protected void beforeHookedMethod(MethodHookParam param) {
-                            if (param.thisObject != null &&
-                                    param.thisObject.getClass().getName()
-                                            .equals("com.xunyou.rb.MyApplication")) {
-
-                                XposedBridge.log(
-                                        TAG + ": MyApplication.onCreate BEFORE"
-                                );
-                            }
-                        }
 
                         @Override
                         protected void afterHookedMethod(MethodHookParam param) {
@@ -63,11 +43,49 @@ public class MainHook implements IXposedHookLoadPackage {
                         }
                     }
             );
+        } catch (Throwable e) {
+            XposedBridge.log(TAG + ": Application hook error: " + e);
+        }
 
-            XposedBridge.log(TAG + ": Application.onCreate hook installed");
+        // 观察签到页面
+        try {
+            Class<?> signActivity = XposedHelpers.findClass(
+                    "com.xunyou.appuser.ui.activity.EditSignActivity",
+                    lpparam.classLoader
+            );
+
+            XposedBridge.log(TAG + ": EditSignActivity FOUND");
+
+            XposedHelpers.findAndHookMethod(
+                    signActivity,
+                    "onCreate",
+                    android.os.Bundle.class,
+                    new XC_MethodHook() {
+
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) {
+                            XposedBridge.log(
+                                    TAG + ": EditSignActivity.onCreate BEFORE"
+                            );
+                        }
+
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) {
+                            XposedBridge.log(
+                                    TAG + ": EditSignActivity.onCreate AFTER"
+                            );
+                        }
+                    }
+            );
+
+            XposedBridge.log(
+                    TAG + ": EditSignActivity hook installed"
+            );
 
         } catch (Throwable e) {
-            XposedBridge.log(TAG + ": ERROR: " + e);
+            XposedBridge.log(
+                    TAG + ": EditSignActivity hook error: " + e
+            );
         }
     }
 }
