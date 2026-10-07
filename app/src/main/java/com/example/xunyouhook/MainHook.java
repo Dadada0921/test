@@ -8,20 +8,22 @@ import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
+import java.lang.reflect.Method;
+
 public class MainHook implements IXposedHookLoadPackage {
 
     private static final String TAG = "XunyouLsposed";
     private static final String TARGET_PACKAGE = "com.xunyou.rb";
 
     @Override
-    public void handleLoadPackage(
-            XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
+    public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam)
+            throws Throwable {
 
         if (!TARGET_PACKAGE.equals(lpparam.packageName)) {
             return;
         }
 
-        XposedBridge.log(TAG + ": loaded " + lpparam.packageName);
+        XposedBridge.log(TAG + ": ===== APP LOADED =====");
 
         try {
             Class<?> appClass = XposedHelpers.findClass(
@@ -29,32 +31,18 @@ public class MainHook implements IXposedHookLoadPackage {
                     lpparam.classLoader
             );
 
-            XposedBridge.log(
-                    TAG + ": MyApplication = " + appClass.getName()
-            );
+            XposedBridge.log(TAG + ": MyApplication found");
 
-            XposedBridge.log(
-                    TAG + ": superclass = " +
-                    appClass.getSuperclass().getName()
-            );
-
-            /*
-             * MyApplication 本身可能没有声明 onCreate，
-             * 因此先 Hook Application.onCreate()。
-             */
             XposedHelpers.findAndHookMethod(
                     Application.class,
                     "onCreate",
                     new XC_MethodHook() {
 
                         @Override
-                        protected void beforeHookedMethod(
-                                MethodHookParam param) {
-
+                        protected void beforeHookedMethod(MethodHookParam param) {
                             if (param.thisObject != null &&
-                                param.thisObject.getClass()
-                                        .getName()
-                                        .equals("com.xunyou.rb.MyApplication")) {
+                                    param.thisObject.getClass().getName()
+                                            .equals("com.xunyou.rb.MyApplication")) {
 
                                 XposedBridge.log(
                                         TAG + ": MyApplication.onCreate BEFORE"
@@ -63,13 +51,10 @@ public class MainHook implements IXposedHookLoadPackage {
                         }
 
                         @Override
-                        protected void afterHookedMethod(
-                                MethodHookParam param) {
-
+                        protected void afterHookedMethod(MethodHookParam param) {
                             if (param.thisObject != null &&
-                                param.thisObject.getClass()
-                                        .getName()
-                                        .equals("com.xunyou.rb.MyApplication")) {
+                                    param.thisObject.getClass().getName()
+                                            .equals("com.xunyou.rb.MyApplication")) {
 
                                 XposedBridge.log(
                                         TAG + ": MyApplication.onCreate AFTER"
@@ -81,10 +66,8 @@ public class MainHook implements IXposedHookLoadPackage {
 
             XposedBridge.log(TAG + ": Application.onCreate hook installed");
 
-        } catch (Throwable t) {
-            XposedBridge.log(
-                    TAG + ": hook failed: " + t
-            );
+        } catch (Throwable e) {
+            XposedBridge.log(TAG + ": ERROR: " + e);
         }
     }
 }
