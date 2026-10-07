@@ -1,6 +1,6 @@
 package com.example.xunyouhook;
 
-import android.util.Log;
+import android.app.Application;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
@@ -8,22 +8,14 @@ import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
-/**
- * Minimal LSPosed module for com.xunyou.rb.
- *
- * Current behavior:
- * - Only activates for com.xunyou.rb
- * - Hooks com.xunyou.rb.MyApplication.onCreate()
- * - Does not alter the original return value or arguments
- */
 public class MainHook implements IXposedHookLoadPackage {
 
-    private static final String TARGET_PACKAGE = "com.xunyou.rb";
     private static final String TAG = "XunyouLsposed";
+    private static final String TARGET_PACKAGE = "com.xunyou.rb";
 
     @Override
-    public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam)
-            throws Throwable {
+    public void handleLoadPackage(
+            XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
 
         if (!TARGET_PACKAGE.equals(lpparam.packageName)) {
             return;
@@ -32,30 +24,67 @@ public class MainHook implements IXposedHookLoadPackage {
         XposedBridge.log(TAG + ": loaded " + lpparam.packageName);
 
         try {
-            Class<?> applicationClass = XposedHelpers.findClass(
+            Class<?> appClass = XposedHelpers.findClass(
                     "com.xunyou.rb.MyApplication",
                     lpparam.classLoader
             );
 
+            XposedBridge.log(
+                    TAG + ": MyApplication = " + appClass.getName()
+            );
+
+            XposedBridge.log(
+                    TAG + ": superclass = " +
+                    appClass.getSuperclass().getName()
+            );
+
+            /*
+             * MyApplication 本身可能没有声明 onCreate，
+             * 因此先 Hook Application.onCreate()。
+             */
             XposedHelpers.findAndHookMethod(
-                    applicationClass,
+                    Application.class,
                     "onCreate",
                     new XC_MethodHook() {
+
                         @Override
-                        protected void beforeHookedMethod(MethodHookParam param) {
-                            XposedBridge.log(TAG + ": MyApplication.onCreate() BEFORE");
+                        protected void beforeHookedMethod(
+                                MethodHookParam param) {
+
+                            if (param.thisObject != null &&
+                                param.thisObject.getClass()
+                                        .getName()
+                                        .equals("com.xunyou.rb.MyApplication")) {
+
+                                XposedBridge.log(
+                                        TAG + ": MyApplication.onCreate BEFORE"
+                                );
+                            }
                         }
 
                         @Override
-                        protected void afterHookedMethod(MethodHookParam param) {
-                            XposedBridge.log(TAG + ": MyApplication.onCreate() AFTER");
+                        protected void afterHookedMethod(
+                                MethodHookParam param) {
+
+                            if (param.thisObject != null &&
+                                param.thisObject.getClass()
+                                        .getName()
+                                        .equals("com.xunyou.rb.MyApplication")) {
+
+                                XposedBridge.log(
+                                        TAG + ": MyApplication.onCreate AFTER"
+                                );
+                            }
                         }
                     }
             );
 
-            XposedBridge.log(TAG + ": hook installed");
+            XposedBridge.log(TAG + ": Application.onCreate hook installed");
+
         } catch (Throwable t) {
-            XposedBridge.log(TAG + ": hook failed: " + Log.getStackTraceString(t));
+            XposedBridge.log(
+                    TAG + ": hook failed: " + t
+            );
         }
     }
 }
