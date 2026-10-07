@@ -1,6 +1,8 @@
 package com.example.xunyouhook;
 
+import android.app.Activity;
 import android.app.Application;
+import android.os.Bundle;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
@@ -12,6 +14,8 @@ public class MainHook implements IXposedHookLoadPackage {
 
     private static final String TAG = "XunyouLsposed";
     private static final String TARGET_PACKAGE = "com.xunyou.rb";
+    private static final String SIGN_ACTIVITY =
+            "com.xunyou.appuser.ui.activity.EditSignActivity";
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam)
@@ -23,7 +27,9 @@ public class MainHook implements IXposedHookLoadPackage {
 
         XposedBridge.log(TAG + ": APP LOADED");
 
-        // 保留已经验证成功的 Application.onCreate Hook
+        /*
+         * 1. 保留已经验证成功的 Application Hook
+         */
         try {
             XposedHelpers.findAndHookMethod(
                     Application.class,
@@ -43,48 +49,72 @@ public class MainHook implements IXposedHookLoadPackage {
                         }
                     }
             );
+
+            XposedBridge.log(TAG + ": Application hook installed");
+
         } catch (Throwable e) {
-            XposedBridge.log(TAG + ": Application hook error: " + e);
+            XposedBridge.log(
+                    TAG + ": Application hook error: " + e
+            );
         }
 
-        // 观察签到页面
-        try {
-            Class<?> signActivity = XposedHelpers.findClass(
-                    "com.xunyou.appuser.ui.activity.EditSignActivity",
-                    lpparam.classLoader
-            );
 
-            XposedBridge.log(TAG + ": EditSignActivity FOUND");
+        /*
+         * 2. Hook Activity.onCreate()
+         *
+         * 不直接 Hook EditSignActivity.onCreate()
+         * 因为它没有声明这个方法。
+         */
+        try {
 
             XposedHelpers.findAndHookMethod(
-                    signActivity,
+                    Activity.class,
                     "onCreate",
-                    android.os.Bundle.class,
+                    Bundle.class,
                     new XC_MethodHook() {
 
                         @Override
-                        protected void beforeHookedMethod(MethodHookParam param) {
-                            XposedBridge.log(
-                                    TAG + ": EditSignActivity.onCreate BEFORE"
-                            );
+                        protected void beforeHookedMethod(
+                                MethodHookParam param) {
+
+                            if (param.thisObject != null &&
+                                    SIGN_ACTIVITY.equals(
+                                            param.thisObject
+                                                    .getClass()
+                                                    .getName())) {
+
+                                XposedBridge.log(
+                                        TAG + ": ===== SIGN ACTIVITY OPEN ====="
+                                );
+                            }
                         }
 
                         @Override
-                        protected void afterHookedMethod(MethodHookParam param) {
-                            XposedBridge.log(
-                                    TAG + ": EditSignActivity.onCreate AFTER"
-                            );
+                        protected void afterHookedMethod(
+                                MethodHookParam param) {
+
+                            if (param.thisObject != null &&
+                                    SIGN_ACTIVITY.equals(
+                                            param.thisObject
+                                                    .getClass()
+                                                    .getName())) {
+
+                                XposedBridge.log(
+                                        TAG + ": ===== SIGN ACTIVITY READY ====="
+                                );
+                            }
                         }
                     }
             );
 
             XposedBridge.log(
-                    TAG + ": EditSignActivity hook installed"
+                    TAG + ": Activity.onCreate hook installed"
             );
 
         } catch (Throwable e) {
+
             XposedBridge.log(
-                    TAG + ": EditSignActivity hook error: " + e
+                    TAG + ": Activity hook error: " + e
             );
         }
     }
