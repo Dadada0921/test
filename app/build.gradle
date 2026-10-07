@@ -13,9 +13,30 @@ android {
         versionCode 1
         versionName '1.0'
     }
+
+    signingConfigs {
+        release {
+            if (project.hasProperty("KEYSTORE_FILE")) {
+                storeFile file(KEYSTORE_FILE)
+                storePassword KEYSTORE_PASSWORD
+                keyAlias KEY_ALIAS
+                keyPassword KEY_PASSWORD
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+
+            if (project.hasProperty("KEYSTORE_FILE")) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
 }
 
 dependencies {
-    // LSPosed/Xposed API 82; compile-time only, not packaged into the APK.
     compileOnly 'de.robv.android.xposed:api:82'
 }
